@@ -42,7 +42,13 @@ import json
 
 #Compilation of all Foreign IP adddresses & their connection
 foreignIPConnections = {}
+
+
+#OS type	[Unix: False]  [Windows: True]
+osType = True if os.name == 'nt' else False
+
 #-----------------------------------------------------------
+
 
 
 #[Functions]
@@ -62,6 +68,24 @@ def PrintResults():
 	#Else, no results file to process
 	else: print('No Results file to process')
 
+
+#[NEW!!]
+
+#Gather the name of the process via it's PID
+def GetProcessName(pID):
+	
+	#String containing the process
+	processName = f'No [Process Name] Found for _PID_:  {pID}'
+#^ TEMP
+
+
+#	processName = ''
+
+
+	#Return the name
+	return processName
+
+
 #-----------------------------------------------------------
 
 
@@ -77,8 +101,12 @@ def PrintResults():
 	
 	- Add support for Mac OS (should be super simple?)
 
+	- Use the COmmand [tasklist] to track processes and via their PID
+		
+		[TO SEARCH A SPECIFIC TASK NAME VIA THE PID]
+			tasklist /FI "PID eq 1234"
+				
 '''
-
 
 
 #[Program Loop]
@@ -98,10 +126,11 @@ while True:
 
 		#Yes, continue to run commands, collect output, process ip addresses & print their information out
 		case 0: 
-			
 
+			#Execute command based on the user's OS type (-ano not available for Unix)
+		
 			#Run the Netstat command & collect its output to a .txt file (we will parse line-by-line to build a json file of data)
-			os.system("netstat -ano > NetStat.txt")
+			os.system("netstat -ano > NetStat.txt") if osType else os.system("netstat -an > NetStat.txt")
 
 
 			#Open the file we just wrote 
@@ -117,6 +146,12 @@ while True:
 					#[TCP] Connection
 					if "TCP" in parsedLine and not "[::]" in parsedLine:
 
+
+#[TO DO]
+#
+# Use the process ID to see what application is running this connection
+
+
 						#Gather the Local IP address listed in the TCP connection
 						localIP = parsedLine.split()[1]
 
@@ -126,8 +161,16 @@ while True:
 						#Gather the TCP connection State
 						connectionState = parsedLine.split()[3]
 						
+
+						#[WINDOWS ONLY]
+						#-----------------------------------------------
+
+						#Process ID
+						processID = ''
+
 						#Gather the PID (Process ID)
-						processID = parsedLine.split()[4]
+						if osType: processID = parsedLine.split()[4]
+						#-----------------------------------------------
 
 
 						#Only continue if we pass these checks
@@ -147,12 +190,23 @@ while True:
 
 								#[Reference Key to ipinfo.io JSON dump]
 
-								#Make an entry in the Dictionary 
-								try: foreignIPConnections[f'{foreignIP}'] = ["TCP", jsonDump["ip"], jsonDump["country"], jsonDump["region"], jsonDump["city"], jsonDump["org"], jsonDump["loc"]]
+								#[Windows Write]	(Includes PID & task information)
+								if osType:
 
+									#Write to the Dict
+									try: foreignIPConnections[f'{foreignIP}'] = ["TCP", jsonDump["ip"], jsonDump["country"], jsonDump["region"], jsonDump["city"], jsonDump["org"], jsonDump["loc"], processID, GetProcessName(processID)]
 
-								#[ERROR HANDLING]
-								except: pass
+									#[ERROR HANDLING]
+									except: pass
+									
+								#[Unix write]
+								else:
+									
+									#Write to the Dict
+									try: foreignIPConnections[f'{foreignIP}'] = ["TCP", jsonDump["ip"], jsonDump["country"], jsonDump["region"], jsonDump["city"], jsonDump["org"], jsonDump["loc"]]
+
+									#[ERROR HANDLING]
+									except: pass
 							
 	
 							#Comment back in for a one instance call
@@ -169,6 +223,7 @@ while True:
 
 						#Gather the Foreign IP address from the split text
 						foreignIP = parsedLine.split()[2]
+
 
 						#Gather the PID (Process ID)
 						processID = parsedLine.split()[3]
@@ -191,15 +246,35 @@ while True:
 								#[Reference Key to ipinfo.io JSON dump]
 
 								#Make an entry in the Dictionary 
-								try: foreignIPConnections[f'{foreignIP}'] = ["UDP", jsonDump["ip"], jsonDump["country"], jsonDump["region"], jsonDump["city"], jsonDump["org"], jsonDump["loc"]]
-	
+								
+								#[Windows Write]	(Includes PID & task information)
+								if osType:
 
-								#[ERROR HANDLING]
-								except: pass
+									#Write to the Dict
+									try: foreignIPConnections[f'{foreignIP}'] = ["UDP", jsonDump["ip"], jsonDump["country"], jsonDump["region"], jsonDump["city"], jsonDump["org"], jsonDump["loc"], processID, GetProcessName(processID)]
+
+									#[ERROR HANDLING]
+									except: pass
+									
+
+								#[Unix write]
+								else:
+									
+									#Write to the Dict
+									try: foreignIPConnections[f'{foreignIP}'] = ["UDP", jsonDump["ip"], jsonDump["country"], jsonDump["region"], jsonDump["city"], jsonDump["org"], jsonDump["loc"]]
+
+									#[ERROR HANDLING]
+									except: pass
 
 
 							#Comment back in for a one instance call
 							#break
+
+
+#[NEW!!]
+			#Clean up all of the files we are done with
+			os.remove('IPInfo.json')
+			os.remove('NetStat.txt')
 
 
 			#Write the content to a file
@@ -211,23 +286,48 @@ while True:
 
 
 					#[Foreign Address]
-					file.write(f'\n[Foreign IP]: {foreignIPConnections[ipConnection][1]}\n')
+					file.write(f'\n[Foreign IP]: {foreignIPConnections[ipConnection][1]}\t\n[Protocol]: {foreignIPConnections[ipConnection][0]}\n')
+					file.write(f'[Organization]: {foreignIPConnections[ipConnection][5]}\n')
+
+
+					#[LOCATION INFORMATION]
+					#==================================================================================
+					file.write('\n\t{Location Information}\n')
 
 					#[Country]
-					file.write(f'\n\t[Country]: {foreignIPConnections[ipConnection][2]}\n')
+					file.write(f'\n\t\t[Country]: {foreignIPConnections[ipConnection][2]}\n')
 
 					#[Region] (State)
-					file.write(f'\t[Region]: {foreignIPConnections[ipConnection][3]}\n')
+					file.write(f'\t\t[Region]: {foreignIPConnections[ipConnection][3]}\n')
 
 					#[Region] (State)
-					file.write(f'\t[City]: {foreignIPConnections[ipConnection][4]}\n')
+					file.write(f'\t\t[City]: {foreignIPConnections[ipConnection][4]}\n')
 
 					#[Region] (State)
-					file.write(f'\t[Organization]: {foreignIPConnections[ipConnection][5]}\n')
+#					file.write(f'\t\t[Organization]: {foreignIPConnections[ipConnection][5]}\n')
 
 					#[Coordinates] 
-					file.write(f'\t[Coordinates]: {foreignIPConnections[ipConnection][6]}\n')
+					file.write(f'\t\t[Coordinates]: {foreignIPConnections[ipConnection][6]}\n\n')
+					#==================================================================================
 
+
+					#[Task Information (Windows OS only)]
+					#==================================================================================
+
+					#Windows only check
+					if osType:
+						
+						#Title text
+						file.write('\n\t{Process Information}\n')
+
+						#Process Name
+						file.write(f'\n\t\t[Process Name]: {foreignIPConnections[ipConnection][8]}\n')
+
+						#PID
+						file.write(f'\t\t[PID]: {foreignIPConnections[ipConnection][7]}\n\n\n')
+					
+
+					#==================================================================================
 
 			#Call upon the method for printing results
 			PrintResults()
