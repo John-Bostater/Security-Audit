@@ -5,8 +5,8 @@
 
 [Description]: 
 
-	{  WINDOWS OS  }
-	
+	{Compatible only with Windows OS (as of now)}
+
 	Perform an automated security audit of networked connections currently running on the user's laptop
 	
 		Use  [netstat -ano]  &  [curl ipinfo.io/X.X.X.X]		
@@ -37,6 +37,7 @@ import json
 #---------------
 
 
+
 #[Global Variables]
 #-----------------------------------------------------------
 
@@ -47,48 +48,33 @@ foreignIPConnections = {}
 #OS type	[Unix: False]  [Windows: True]
 osType = True if os.name == 'nt' else False
 
+
+#UI String
+uiString = '''
+\nSECURITY AUDIT
+-------------------------------------------------------------------------
+0: Check all current foreign IP connections, log, process, & print result
+1: Print an existing result
+\033[31m2: Exit\033[0m
+-------------------------------------------------------------------------
+
+What would you like to do [0-2]: '''
+
+
 #-----------------------------------------------------------
-
-
-#TEST!!
-#Command 
-os.system(f'tasklist > TaskList.txt')
-
-
-#Yes, I know this is hacky & I should use subprocess instead, I just don't care for this lol
-with open('TaskList.txt', 'r') as taskFile:
-
-
-
-	#Gather the
-	i = 0
-
-	#Print the Third Line onlt
-	for line in taskFile:
-
-
-		if i == 3:
-			
-			print(line)
-
-			break
-
-
-		i += 1
-
-	#PLACEHOLDER!!!
-
-
-
 
 
 
 #[Functions]
 #-----------------------------------------------------------
 
+
+#Clear the terminal
+def ClearTerminal(): os.system('cls') if osType else os.system('clear')
+
+
 #Print the reulst of the file (if it exists)
 def PrintResults():
-
 
 	#See if the file exists first
 	if(os.path.exists("Results.txt")):
@@ -101,15 +87,8 @@ def PrintResults():
 	else: print('No Results file to process')
 
 
-#[NEW!!]
 
 #Gather the name of the process via it's PID
-
-
-#Comment out to implement
-#'''
-
-
 def GetProcessName(pID):
 	
 	#String containing the process
@@ -150,18 +129,13 @@ def GetProcessName(pID):
 			#Increment
 			i += 1
 
-
-
 	#Clean up the file
 	os.remove('TaskList.txt')
 
-
 	#Return the name
 	return processName
-
 	
 #'''
-
 
 #-----------------------------------------------------------
 
@@ -178,11 +152,6 @@ def GetProcessName(pID):
 	
 	- Add support for Mac OS (should be super simple?)
 
-	- Use the COmmand [tasklist] to track processes and via their PID
-		
-		[TO SEARCH A SPECIFIC TASK NAME VIA THE PID]
-			tasklist /FI "PID eq 1234"
-				
 '''
 
 
@@ -193,9 +162,16 @@ def GetProcessName(pID):
 #Loop choice
 while True:
 
+	#Variable to hold the user's choice
+	userChoice = -1
+
 
 	#Prompt the user on how they would like to continue
-	userChoice = int(input("\nWhat would you like to do?\n\n0: Log all current connections & print result\n1: Print an existing result\n2: Exit\n\n> "))
+	try: userChoice = int(input(uiString))
+
+	#Error(s) will be handled by default/_ case
+	except: pass
+
 
 	#Choice Handling
 	match(userChoice):
@@ -203,6 +179,11 @@ while True:
 
 		#Yes, continue to run commands, collect output, process ip addresses & print their information out
 		case 0: 
+
+			#Clear the user's choice
+			ClearTerminal()
+			print("\nProcessing Now...\n")
+
 
 			#Execute command based on the user's OS type (-ano not available for Unix)
 		
@@ -348,7 +329,6 @@ while True:
 							#break
 
 
-#[NEW!!]
 			#Clean up all of the files we are done with
 			os.remove('IPInfo.json')
 			os.remove('NetStat.txt')
@@ -400,25 +380,32 @@ while True:
 						#PID
 						file.write(f'\t\t[PID]: {foreignIPConnections[ipConnection][7]}\n\n\n')
 					
-
 					#==================================================================================
 
-			#Call upon the method for printing results
-			PrintResults()
 
-
+			#Clear terminal & print results
+			ClearTerminal(), PrintResults(), print('\n\033[32mDisplayed information has been successfully recorded to:\033[0m Results.txt')
+			
 
 		#Print an existing dump
-		case 1: PrintResults()
+		case 1: ClearTerminal(), PrintResults()
 
 
-		#No, Reprompt the user
+		#Exit the program
 		case 2: 
+			
+			#Clear the terminal
+			ClearTerminal() 
+		
+			#Leaving Statement
+			print('\nGoodbye!\n') 
 
-			#Exit Statement
-			print('Goodbye') 
-
-			#Exit the program
+			#Break the program loop
 			break
+
+
+		#[Default Case]
+		#	User Error, just clear the terminal as the user will be reprompted above
+		case _: ClearTerminal(), print('\033[31mERROR\033[0m  Must enter a valid number [0-2]', end='')
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------------
