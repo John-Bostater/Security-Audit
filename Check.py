@@ -50,6 +50,38 @@ osType = True if os.name == 'nt' else False
 #-----------------------------------------------------------
 
 
+#TEST!!
+#Command 
+os.system(f'tasklist > TaskList.txt')
+
+
+#Yes, I know this is hacky & I should use subprocess instead, I just don't care for this lol
+with open('TaskList.txt', 'r') as taskFile:
+
+
+
+	#Gather the
+	i = 0
+
+	#Print the Third Line onlt
+	for line in taskFile:
+
+
+		if i == 3:
+			
+			print(line)
+
+			break
+
+
+		i += 1
+
+	#PLACEHOLDER!!!
+
+
+
+
+
 
 #[Functions]
 #-----------------------------------------------------------
@@ -72,18 +104,63 @@ def PrintResults():
 #[NEW!!]
 
 #Gather the name of the process via it's PID
+
+
+#Comment out to implement
+#'''
+
+
 def GetProcessName(pID):
 	
 	#String containing the process
 	processName = f'No [Process Name] Found for _PID_:  {pID}'
-#^ TEMP
 
 
-#	processName = ''
+	#Command to gather info for the specific PID
+	os.system(f'tasklist /FI "PID eq {pID}" > TaskList.txt')
+	
+	
+	#Yes, I know this is hacky & I should use subprocess instead, I just don't care for this lol
+	with open('TaskList.txt', 'r') as taskFile:
+
+		#Gather the Third line only as it contains the Name & Size		
+
+		#Track iterations
+		i = 0
+
+		#Parse file
+		for line in taskFile:
+
+			#Condition met
+			if i == 3:
+			
+				#Process Name (first item)
+				processName = line.split()[0]
+
+
+#[TO DO!!]
+				#Process Size
+				#	[CODE HERE!!]
+				#processSize = line.split()[4]
+
+
+				#End read here
+				break
+
+			#Increment
+			i += 1
+
+
+
+	#Clean up the file
+	os.remove('TaskList.txt')
 
 
 	#Return the name
 	return processName
+
+	
+#'''
 
 
 #-----------------------------------------------------------
@@ -302,9 +379,6 @@ while True:
 
 					#[Region] (State)
 					file.write(f'\t\t[City]: {foreignIPConnections[ipConnection][4]}\n')
-
-					#[Region] (State)
-#					file.write(f'\t\t[Organization]: {foreignIPConnections[ipConnection][5]}\n')
 
 					#[Coordinates] 
 					file.write(f'\t\t[Coordinates]: {foreignIPConnections[ipConnection][6]}\n\n')
